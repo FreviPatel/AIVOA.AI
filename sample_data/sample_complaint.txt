@@ -1,0 +1,20 @@
+COMPLAINT REPORT - PHARMA INC
+Date: 2024-02-10
+Reporter: Dr. Alice Vance (St. Mary's Clinic)
+Source: Customer Email
+
+Product Details:
+- Product Name: Ibuprofen Oral Suspension
+- Strength: 100mg/5ml
+- Batch Number: BATCH-IBU-774411
+- Affected Quantity: 100 bottles
+- Manufacturing Date: 2023-11-01
+- Expiry Date: 2025-11-01
+- Originating Site/Block: Block B - Packaging Unit 3
+
+Issue Description:
+Several bottles in the shipped carton contained discolored liquid with unexpected particulate precipitation. This presents potential efficacy loss and patient safety risks. 
+
+Severity: Critical
+Suggested Next Action: Quarantine batch immediately and perform laboratory chemical analysis.
+Risk Assessment: High risk to patient safety if distributed further.

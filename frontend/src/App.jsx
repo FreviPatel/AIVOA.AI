@@ -56,7 +56,6 @@ function App() {
               AI-Powered Quality Management & Complaint Triaging
             </div>
           </div>
-          <span className="brand-tag">Pharmaco QMS v1.0</span>
         </div>
 
         {complaintId && (

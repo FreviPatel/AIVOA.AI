@@ -6,7 +6,6 @@ from sqlalchemy.orm import Session
 from dotenv import load_dotenv
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 
-
 # Load environment variables
 load_dotenv()
 
@@ -21,6 +20,7 @@ from app.schemas.complaint_schema import (
 )
 from app.services.ai_service import extract_complaint_details
 from app.services.document_parser import extract_text_from_file
+from app.services.ai_pipeline import run_5_node_qms_pipeline
 from app.agents.graph import graph_app
 
 # Ensure database tables are created
@@ -28,8 +28,8 @@ Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title="AI-Powered Customer Complaint Management System API",
-    description="Backend API for QMS complaint management, document parsing, and LangGraph AI Copilot agent.",
-    version="1.0.0",
+    description="Backend API for QMS complaint management, 5-Node LangGraph AI Pipeline, document parsing, and LangGraph AI Copilot agent.",
+    version="2.0.0",
 )
 
 # Configure CORS middleware
@@ -53,7 +53,7 @@ app.add_middleware(
 def read_root():
     return {
         "status": "online",
-        "message": "Welcome to AI-Powered Customer Complaint Management System API",
+        "message": "Welcome to AI-Powered Customer Complaint Management System API (5-Node LangGraph Enabled)",
     }
 
 
@@ -147,20 +147,21 @@ def update_complaint(
 
 
 # ==========================================
-# Phase 3 File Upload Endpoint
+# 5-Node LangGraph File Upload Endpoint
 # ==========================================
 
 @app.post(
     "/api/upload-complaint",
-    summary="Upload document and extract complaint details",
+    summary="Upload document and process via 5-Node LangGraph AI Pipeline",
 )
 async def upload_complaint(
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
 ):
     """
-    Upload a PDF/TXT complaint document, parse its text content, extract structured data
-    using Groq LLM, and persist a new Complaint and chat history in the database.
+    Upload a PDF/TXT complaint document, parse its text content, execute the 5-Node LangGraph AI Pipeline
+    (Extraction & Summary -> Completeness -> Risk & Root Cause -> CAPA -> Duplicate Detector),
+    and persist the fully analyzed Complaint and chat history in PostgreSQL.
     """
     file_bytes = await file.read()
     raw_text = await extract_text_from_file(file_bytes, file.filename)
@@ -171,11 +172,11 @@ async def upload_complaint(
             detail=f"Could not extract text content from file '{file.filename}'.",
         )
 
-    # Groq LLM Text-to-Form extraction
-    extracted_data = extract_complaint_details(raw_text)
+    # Run full 5-Node LangGraph AI Pipeline
+    analyzed_data = run_5_node_qms_pipeline(raw_text)
 
     # Create new Complaint database record
-    new_complaint = Complaint(**extracted_data)
+    new_complaint = Complaint(**analyzed_data)
     db.add(new_complaint)
     db.commit()
     db.refresh(new_complaint)
@@ -189,11 +190,15 @@ async def upload_complaint(
     )
     db.add(user_msg)
 
-    # Store AI response acknowledging extraction
+    # Store AI response acknowledging 5-Node pipeline execution
+    dup_str = " ⚠️ Duplicate batch detected!" if new_complaint.is_duplicate else ""
     ai_msg = ChatMessage(
         complaint_id=new_complaint.id,
         sender="ai",
-        message=f"I have parsed the document '{file.filename}' and created Complaint ID #{new_complaint.id}.",
+        message=(
+            f"Parsed document '{file.filename}' through 5-Node AI Pipeline (Complaint ID #{new_complaint.id}). "
+            f"Completeness Score: {new_complaint.completeness_score}, Risk Level: {new_complaint.risk_level}.{dup_str}"
+        ),
         uploaded_file_name=None,
     )
     db.add(ai_msg)
@@ -207,36 +212,37 @@ async def upload_complaint(
 
 
 # ==========================================
-# Phase 4 Copilot Chat Endpoint (LangGraph Agent)
+# 5-Node Copilot Chat Endpoint (LangGraph Agent)
 # ==========================================
 
 @app.post(
     "/api/chat",
     response_model=ChatMessageResponse,
-    summary="Copilot Chat endpoint powered by LangGraph agent",
+    summary="Copilot Chat endpoint powered by 5-Node LangGraph AI Pipeline",
 )
 def copilot_chat(chat_in: ChatMessageCreate, db: Session = Depends(get_db)):
     """
     Store incoming user message and return an AI copilot response message.
-    If complaint_id is None, automatically extract details using LLM, create a new Complaint record.
-    If complaint_id is NOT None, use LangGraph agent with tool calling to converse and update database fields as requested.
+    If complaint_id is None, automatically execute the 5-Node LangGraph AI Pipeline on the message text.
+    If complaint_id is NOT None, use LangGraph agent with tool calling to edit complaint fields.
     """
     target_complaint_id = chat_in.complaint_id
 
-    # CASE A: If complaint_id is None, create new Complaint record via Text-to-Form
+    # CASE A: If complaint_id is None, create new Complaint record via 5-Node AI Pipeline
     if target_complaint_id is None:
-        extracted_data = extract_complaint_details(chat_in.message)
+        analyzed_data = run_5_node_qms_pipeline(chat_in.message)
 
-        # Create new Complaint record from AI extracted fields
-        new_complaint = Complaint(**extracted_data)
+        # Create new Complaint record from 5-Node AI extracted & analyzed fields
+        new_complaint = Complaint(**analyzed_data)
         db.add(new_complaint)
         db.commit()
         db.refresh(new_complaint)
 
         target_complaint_id = new_complaint.id
+        dup_note = " (⚠️ Potential duplicate batch matched in QMS)" if new_complaint.is_duplicate else ""
         ai_response_text = (
-            f"I have processed your complaint for '{new_complaint.product_name or 'the product'}' "
-            f"and automatically populated the QMS form (Complaint ID #{new_complaint.id})."
+            f"I have processed your complaint through the 5-Node AI Pipeline (Complaint ID #{new_complaint.id}){dup_note}. "
+            f"Product: '{new_complaint.product_name or 'Pharmaceutical Product'}', Risk Level: '{new_complaint.risk_level}', Completeness: {new_complaint.completeness_score}."
         )
     else:
         # CASE B: If complaint_id is NOT None, invoke LangGraph agent with chat history context
@@ -267,7 +273,6 @@ def copilot_chat(chat_in: ChatMessageCreate, db: Session = Depends(get_db)):
 
         # Add current user prompt
         formatted_messages.append(HumanMessage(content=chat_in.message))
-
 
         try:
             # Invoke LangGraph workflow

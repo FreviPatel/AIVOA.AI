@@ -11,6 +11,12 @@ import {
   CheckCircle2,
   Save,
   Loader2,
+  Sparkles,
+  ShieldAlert,
+  Activity,
+  CheckSquare,
+  CopyAlert,
+  HelpCircle,
 } from 'lucide-react';
 
 export default function LeftForm() {
@@ -30,9 +36,9 @@ export default function LeftForm() {
           <div className="placeholder-icon-box">
             <FileSearch size={32} />
           </div>
-          <div className="placeholder-title">Awaiting AI Extraction</div>
+          <div className="placeholder-title">Awaiting AI Pipeline Execution</div>
           <div className="placeholder-desc">
-            Upload a complaint PDF/TXT document or paste raw complaint text into the AI Copilot on the right to automatically extract and populate the QMS form.
+            Upload a complaint PDF/TXT document or paste raw complaint text into the AI Copilot on the right to automatically execute the 5-Node LangGraph AI Pipeline.
           </div>
         </div>
       </div>
@@ -74,10 +80,62 @@ export default function LeftForm() {
           >
             {isCommitted ? 'Committed to QMS' : complaintData.status || 'Pending Triage'}
           </span>
-          <span className={`badge ${getSeverityBadgeClass(complaintData.severity)}`}>
-            {complaintData.severity || 'Major'}
+          <span className={`badge ${getSeverityBadgeClass(complaintData.severity || complaintData.risk_level)}`}>
+            {complaintData.risk_level || complaintData.severity || 'Major'}
           </span>
         </div>
+      </div>
+
+      {/* NODE 5: Duplicate Detector Alert Banner */}
+      {complaintData.is_duplicate && (
+        <div className="pipeline-alert-banner alert-duplicate">
+          <CopyAlert size={20} color="#DC2626" />
+          <div>
+            <div style={{ fontWeight: 600, color: '#991B1B' }}>
+              Node 5 Alert: Potential Duplicate Complaint Detected!
+            </div>
+            <div style={{ fontSize: '0.85rem', color: '#7F1D1D', marginTop: '2px' }}>
+              {complaintData.duplicate_complaint_ids || 'Matching batch number found in existing QMS records.'}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* NODE 1: Executive AI Summary Banner */}
+      {complaintData.summary && (
+        <div className="pipeline-summary-card">
+          <div className="summary-header">
+            <Sparkles size={18} color="#2563EB" />
+            <span>Node 1: AI Executive Summary</span>
+          </div>
+          <div className="summary-text">{complaintData.summary}</div>
+        </div>
+      )}
+
+      {/* NODE 2: QA Completeness Auditor */}
+      <div className="pipeline-completeness-card">
+        <div className="completeness-header">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <CheckSquare size={18} color="#059669" />
+            <span style={{ fontWeight: 600, fontSize: '0.95rem', color: '#111827' }}>
+              Node 2: QA Field Completeness Checker
+            </span>
+          </div>
+          <span className="completeness-score-pill">
+            Score: {complaintData.completeness_score || '100%'}
+          </span>
+        </div>
+        {complaintData.missing_fields && complaintData.missing_fields.trim() ? (
+          <div className="missing-fields-warning">
+            <HelpCircle size={15} color="#D97706" />
+            <span>Missing required fields: <strong>{complaintData.missing_fields}</strong></span>
+          </div>
+        ) : (
+          <div className="missing-fields-success">
+            <CheckCircle2 size={15} color="#059669" />
+            <span>All mandatory QA fields are fully populated!</span>
+          </div>
+        )}
       </div>
 
       {/* Section 1: Origin & Customer Details */}
@@ -236,27 +294,47 @@ export default function LeftForm() {
         </div>
       </div>
 
-      {/* Section 5: QA Risk Assessment & Suggested Action */}
+      {/* NODE 3: QA Risk & Root Cause Analysis */}
       <div className="qms-section">
         <div className="section-header">
-          <ClipboardCheck size={18} color="#2563EB" />
-          <span>5. QA Risk Assessment & Next Action</span>
+          <Activity size={18} color="#2563EB" />
+          <span>Node 3: Risk & Root Cause Analysis</span>
         </div>
         <div className="form-grid">
           <div className="form-field form-grid-full">
-            <label>Initial Risk Assessment</label>
-            <textarea
+            <label>Classified Risk Level</label>
+            <input
+              type="text"
               readOnly
-              value={complaintData.initial_risk_assessment || ''}
-              placeholder="Risk assessment details..."
+              value={complaintData.risk_level || complaintData.severity || ''}
+              style={{ fontWeight: 600, color: '#DC2626' }}
             />
           </div>
           <div className="form-field form-grid-full">
-            <label>Suggested Next Action</label>
+            <label>Top Manufacturing Root Causes</label>
             <textarea
               readOnly
-              value={complaintData.suggested_next_action || ''}
-              placeholder="Recommended QA action..."
+              value={complaintData.root_cause_analysis || complaintData.initial_risk_assessment || ''}
+              placeholder="AI-analyzed root causes..."
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* NODE 4: CAPA Generator */}
+      <div className="qms-section">
+        <div className="section-header">
+          <ShieldAlert size={18} color="#2563EB" />
+          <span>Node 4: CAPA Recommendation Generator</span>
+        </div>
+        <div className="form-grid">
+          <div className="form-field form-grid-full">
+            <label>Recommended Corrective & Preventive Actions (CAPA)</label>
+            <textarea
+              readOnly
+              value={complaintData.capa_recommendations || complaintData.suggested_next_action || ''}
+              placeholder="AI-recommended CAPA plan..."
+              style={{ minHeight: '90px' }}
             />
           </div>
         </div>

@@ -20,6 +20,17 @@ class ComplaintBase(BaseModel):
     severity: Optional[str] = None
     suggested_next_action: Optional[str] = None
     initial_risk_assessment: Optional[str] = None
+    
+    # 5-Node AI Pipeline Fields
+    summary: Optional[str] = None
+    missing_fields: Optional[str] = None
+    completeness_score: Optional[str] = None
+    risk_level: Optional[str] = None
+    root_cause_analysis: Optional[str] = None
+    capa_recommendations: Optional[str] = None
+    is_duplicate: Optional[bool] = False
+    duplicate_complaint_ids: Optional[str] = None
+
     status: Optional[str] = "Pending Triage"
 
 
@@ -45,6 +56,16 @@ class ComplaintUpdate(BaseModel):
     severity: Optional[str] = None
     suggested_next_action: Optional[str] = None
     initial_risk_assessment: Optional[str] = None
+    
+    summary: Optional[str] = None
+    missing_fields: Optional[str] = None
+    completeness_score: Optional[str] = None
+    risk_level: Optional[str] = None
+    root_cause_analysis: Optional[str] = None
+    capa_recommendations: Optional[str] = None
+    is_duplicate: Optional[bool] = None
+    duplicate_complaint_ids: Optional[str] = None
+
     status: Optional[str] = None
 
 

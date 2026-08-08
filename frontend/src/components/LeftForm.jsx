@@ -14,9 +14,9 @@ import {
   ShieldAlert,
   Activity,
   CheckSquare,
-  CopyAlert,
   HelpCircle,
 } from 'lucide-react';
+
 
 export default function LeftForm() {
   const dispatch = useDispatch();
@@ -89,7 +89,8 @@ export default function LeftForm() {
       {/* NODE 5: Duplicate Detector Alert Banner (Safely rendered with optional chaining) */}
       {Boolean(complaintData?.is_duplicate) && (
         <div className="pipeline-alert-banner alert-duplicate">
-          <CopyAlert size={20} color="#DC2626" />
+          <AlertTriangle size={20} color="#DC2626" />
+
           <div>
             <div style={{ fontWeight: 600, color: '#991B1B' }}>
               Node 5 Alert: Potential Duplicate Complaint Detected!
